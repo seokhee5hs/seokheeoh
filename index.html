@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지능형 교수설계 어시스턴트 (AI EdTech Core)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; }
+        
+        /* Custom Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes progress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
+        
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-slide-in-up { animation: slideInUp 0.5s ease-out forwards; }
+        .animate-progress { animation: progress 2s ease-in-out infinite; }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- [SVG 아이콘 컴포넌트] ---
+        const Icons = {
+            LayoutDashboard: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
+            BookOpen: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            FileQuestion: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M10 10.3c.2-.4.5-.8.9-1a2.1 2.1 0 0 1 2.6.4c.3.4.5.8.5 1.3 0 1.3-2 2-2 2"/><path d="M12 17h.01"/></svg>,
+            CheckSquare: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
+            Sparkles: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+            LogOut: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+            ChevronRight: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            FileText: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>,
+            CheckCircle: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>,
+            Clock: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            AlertCircle: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            PlayCircle: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>,
+            PlusCircle: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>,
+            Users: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            FolderOpen: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"/></svg>,
+            GripVertical: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>,
+            TrendingDown: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>,
+            BarChart: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>,
+            Mail: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>,
+            Lightbulb: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.9 1.2 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
+            Database: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>,
+            X: ({size=20, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        };
+
+        // --- [OpenAI API Setup] ---
+        const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+        const OPENAI_MODELS = [
+            { value: "gpt-4o-mini", label: "gpt-4o-mini · 저비용 기본 추천" },
+            { value: "gpt-5-mini", label: "gpt-5-mini · 더 강한 추론 옵션" },
+            { value: "gpt-4.1", label: "gpt-4.1 · 문서형 응답에 강한 범용 모델" },
+        ];
+        const STORAGE_KEYS = {
+            apiKey: "openaiApiKey",
+            model: "openaiModel"
+        };
+        const apiKey = ""; // 필요하면 기본 OpenAI API Key를 넣어 사용할 수 있습니다.
+
+        const normalizeSchema = (schema) => {
+            if (Array.isArray(schema)) {
+                return schema.map(normalizeSchema);
+            }
+
+            if (!schema || typeof schema !== "object") {
+                return schema;
+            }
+
+            const normalized = {};
+
+            Object.entries(schema).forEach(([key, value]) => {
+                if (key === "type" && typeof value === "string") {
+                    normalized[key] = value.toLowerCase();
+                    return;
+                }
+
+                if (key === "properties" && value && typeof value === "object") {
+                    normalized[key] = Object.fromEntries(
+                        Object.entries(value).map(([propKey, propValue]) => [propKey, normalizeSchema(propValue)])
+                    );
+                    normalized.additionalProperties = false;
+                    return;
+                }
+
+                normalized[key] = normalizeSchema(value);
+            });
+
+            return normalized;
+        };
+
+        const extractResponseText = (result) => {
+            if (typeof result.output_text === "string" && result.output_text.trim()) {
+                return result.output_text.trim();
+            }
+
+            const outputText = (result.output || [])
+                .flatMap(item => item.content || [])
+                .find(content => content.type === "output_text" && typeof content.text === "string");
+
+            if (outputText?.text) {
+                return outputText.text.trim();
+            }
+
+            const refusal = (result.output || [])
+                .flatMap(item => item.content || [])
+                .find(content => content.type === "refusal" && typeof content.refusal === "string");
+
+            if (refusal?.refusal) {
+                throw new Error(`모델이 요청을 거절했습니다: ${refusal.refusal}`);
+            }
+
+            throw new Error("OpenAI 응답에서 텍스트를 찾지 못했습니다.");
+        };
+
+        const parseJsonResponse = (text) => {
+            const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+            return JSON.parse(cleaned);
+        };
+
+        const parseDurationMs = (value) => {
+            if (!value || typeof value !== "string") return null;
+
+            const trimmed = value.trim();
+            if (!trimmed) return null;
+
+            if (/^\d+$/.test(trimmed)) {
+                return Number(trimmed) * 1000;
+            }
+
+            const match = trimmed.match(/^(\d+(?:\.\d+)?)(ms|s|m|h)$/i);
+            if (!match) return null;
+
+            const amount = Number(match[1]);
+            const unit = match[2].toLowerCase();
+            const multipliers = { ms: 1, s: 1000, m: 60000, h: 3600000 };
+
+            return Math.round(amount * multipliers[unit]);
+        };
+
+        const getRetryDelayMs = (response, attempt, fallbackDelays) => {
+            const retryAfter = parseDurationMs(response.headers.get("retry-after"));
+            const resetRequests = parseDurationMs(response.headers.get("x-ratelimit-reset-requests"));
+            const resetTokens = parseDurationMs(response.headers.get("x-ratelimit-reset-tokens"));
+            const headerDelay = retryAfter ?? resetRequests ?? resetTokens;
+
+            if (headerDelay && headerDelay > 0) {
+                return Math.min(headerDelay, 60000);
+            }
+
+            return fallbackDelays[Math.min(attempt, fallbackDelays.length - 1)];
+        };
+
+        const generateWithOpenAI = async ({ prompt, schema, userApiKey, model = DEFAULT_OPENAI_MODEL }) => {
+            const activeKey = (userApiKey || apiKey || "").trim();
+
+            if (!activeKey) {
+                throw new Error("OpenAI API 키가 없습니다. 첫 화면에서 유효한 OpenAI API 키를 입력해 주세요.");
+            }
+
+            const payload = {
+                model,
+                input: [
+                    {
+                        role: "system",
+                        content: [
+                            {
+                                type: "input_text",
+                                text: "주어진 요청에 대해 JSON Schema를 엄격히 따르는 JSON만 반환하세요."
+                            }
+                        ]
+                    },
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "input_text",
+                                text: prompt
+                            }
+                        ]
+                    }
+                ],
+                text: {
+                    format: {
+                        type: "json_schema",
+                        name: "edtech_response",
+                        strict: true,
+                        schema: normalizeSchema(schema)
+                    }
+                }
+            };
+
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            let retries = 5;
+
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch("https://api.openai.com/v1/responses", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${activeKey}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const err = await response.text();
+                        const lowerErr = err.toLowerCase();
+
+                        if (response.status === 401 || response.status === 403) {
+                            throw new Error(`HTTP Error ${response.status}: OpenAI API 키가 올바르지 않거나 권한이 없습니다. 첫 화면에서 유효한 OpenAI API 키를 입력해 주세요.\n\n상세: ${err}`);
+                        }
+                        if (response.status === 400) {
+                            throw new Error(`HTTP Error ${response.status}: OpenAI 요청 형식이 올바르지 않습니다.\n\n상세: ${err}`);
+                        }
+                        if (response.status === 429) {
+                            const retryDelayMs = getRetryDelayMs(response, attempt, delays);
+
+                            if (lowerErr.includes("insufficient_quota") || lowerErr.includes("quota")) {
+                                throw new Error(
+                                    `HTTP Error 429: 현재 OpenAI 사용 한도 또는 크레딧이 부족합니다.\n\n` +
+                                    `확인할 항목:\n` +
+                                    `1. OpenAI 프로젝트 결제/크레딧 상태\n` +
+                                    `2. 월 사용 한도(usage limit)\n` +
+                                    `3. 조직 또는 프로젝트의 모델 사용 권한\n\n` +
+                                    `상세: ${err}`
+                                );
+                            }
+
+                            if (attempt < retries) {
+                                await new Promise(res => setTimeout(res, retryDelayMs));
+                                continue;
+                            }
+
+                            throw new Error(
+                                `HTTP Error 429: 요청이 너무 빠르거나 토큰 한도를 초과했습니다.\n\n` +
+                                `잠시 후 다시 시도해 주세요. 가능한 원인:\n` +
+                                `1. 분당 요청 수(RPM) 초과\n` +
+                                `2. 분당 토큰 수(TPM) 초과\n` +
+                                `3. 동일 시점 다중 클릭으로 인한 중복 요청\n\n` +
+                                `상세: ${err}`
+                            );
+                        }
+                        throw new Error(`OpenAI API 호출 실패 (HTTP ${response.status})\n\n상세: ${err}`);
+                    }
+                    
+                    const result = await response.json();
+                    const text = extractResponseText(result);
+
+                    if (!text) {
+                        throw new Error("AI 모델이 데이터를 반환하지 않았습니다.");
+                    }
+
+                    return parseJsonResponse(text);
+
+                } catch (error) {
+                    if (
+                        attempt === retries ||
+                        error.message.includes("OpenAI API 키가") ||
+                        error.message.includes("OpenAI 요청 형식이") ||
+                        error instanceof SyntaxError
+                    ) {
+                        throw error instanceof SyntaxError
+                            ? new Error("모델 응답을 JSON으로 해석하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+                            : error;
+                    }
+                    await new Promise(res => setTimeout(res, delays[attempt]));
+                }
+            }
+        };
+
+        const runStructuredGeneration = async ({
+            prompt,
+            schema,
+            apiConfig,
+            setAiMessage,
+            setIsGenerating,
+            setErrorMsg,
+            loadingMessage
+        }) => {
+            setErrorMsg("");
+            setAiMessage(loadingMessage);
+            setIsGenerating(true);
+
+            try {
+                return await generateWithOpenAI({
+                    prompt,
+                    schema,
+                    userApiKey: apiConfig.apiKey,
+                    model: apiConfig.model
+                });
+            } catch (error) {
+                setErrorMsg(error.message);
+                return null;
+            } finally {
+                setIsGenerating(false);
+            }
+        };
+
+        // --- [RAG 데이터 베이스] ---
+        const XR_KNOWLEDGE_BASE = {
+            1: `[XR콘텐츠 개요] 존 라도프의 메타버스 7개 레이어... VR 역사...`,
+            4: `[생성형 AI와 XR] 생성형 AI 모델... 디자이너를 위한 AI... 사례... 윤리적 과제...`,
+            5: `[생성형 AI 창작 (실습)] 미드저니(Midjourney) 활용... 고급 프롬프트 기법... 스카이박스 생성 실습...`,
+            13: `[XR콘텐츠 사용자 경험 평가] 메타버스 UX 평가 휴리스틱... VR 앵커링 문제... 콘텐츠 IP 보호...`
+        };
+
+        const LMS_SECTION_PRESETS = [
+            { id: "lms-home", lmsLabel: "강의홈", projectLabel: "교과목 통합 현황", targetMenu: "dashboard", summary: "출석률, 이용률, 학습활동 참여율을 우리 앱의 코스 현황과 연결합니다." },
+            { id: "lms-plan", lmsLabel: "강의계획서", projectLabel: "① 강의 설계", targetMenu: "syllabus", summary: "주차별 모듈, 강의설계 추가, AI 자료 생성을 LMS 강의계획서와 대응합니다." },
+            { id: "lms-materials", lmsLabel: "학습자료실", projectLabel: "① 강의 자료 / AI 콘텐츠", targetMenu: "syllabus", summary: "주차별 PPT 흐름, 개념 요약, 학습자료 업로드 항목을 연결할 수 있습니다." },
+            { id: "lms-assign", lmsLabel: "과제출제/채점", projectLabel: "② 평가 및 과제 설계", targetMenu: "assignments", summary: "과제 뱅크, 루브릭, AI 과제 생성 결과를 LMS 과제 출제 화면과 연결합니다." },
+            { id: "lms-team", lmsLabel: "팀프로젝트출제/채점", projectLabel: "② 과제 뱅크 / 팀 과제 확장", targetMenu: "assignments", summary: "팀 프로젝트용 과제 뱅크와 평가 기준을 같은 구조로 확장할 수 있습니다." },
+            { id: "lms-quiz", lmsLabel: "시험/퀴즈 평가관리", projectLabel: "③ AI 채점 및 피드백", targetMenu: "evaluation", summary: "제출물 수집, AI 채점, 점수 저장, 성적 분포도와 연계됩니다." },
+            { id: "lms-students", lmsLabel: "수강생관리", projectLabel: "③ 제출 현황 / ④ 진도 점검", targetMenu: "evaluation", summary: "학생 제출물, 학습부진자, 참여율 모니터링을 한곳에서 볼 수 있습니다." },
+            { id: "lms-grade", lmsLabel: "성적산출결과", projectLabel: "③ 성적 분포도 / ⑤ 성찰 및 개선", targetMenu: "reflection", summary: "저장된 점수와 리포트 결과를 기반으로 성적 분석과 개선 제안을 제공합니다." },
+            { id: "lms-preview", lmsLabel: "학생모드 환경보기", projectLabel: "미리보기 연동 제안", targetMenu: "dashboard", summary: "향후 학생용 뷰 또는 공개 미리보기 화면으로 확장하기 좋은 지점입니다." }
+        ];
+
+        const createMockSubmission = (courseTitle, studentName, assignmentTitle) => ({
+            source: "lms",
+            title: `${assignmentTitle || "과제"} 제출본`,
+            fileName: `${studentName}_${(assignmentTitle || "assignment").replace(/\s+/g, "_")}.txt`,
+            submittedAt: new Date().toLocaleString("ko-KR"),
+            content: [
+                `과목명: ${courseTitle}`,
+                `학생명: ${studentName}`,
+                `과제명: ${assignmentTitle || "미정 과제"}`,
+                "",
+                "1. 학습 목표",
+                "- XR/VR 환경에서의 핵심 개념을 실습 사례에 적용한다.",
+                "",
+                "2. 제출 요약",
+                "- Unity 기반 인터랙션 흐름을 설계하였다.",
+                "- 사용자 이동 방식과 몰입 요소를 비교 분석하였다.",
+                "",
+                "3. 자기 성찰",
+                "- 구현은 완료했지만 사용성 테스트와 근거 제시가 다소 부족하다.",
+                "- 다음 단계로는 시나리오별 개선안을 보완할 계획이다."
+            ].join("\n")
+        });
+
+        const parseWeeksFromSyllabusText = (text) => {
+            if (!text || !text.trim()) return [];
+
+            const lines = text
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean);
+
+            const parsedWeeks = [];
+
+            lines.forEach((line) => {
+                const match = line.match(/^(?:(\d+)\s*주차|week\s*(\d+)|(\d+)\s*주)\s*[:\-)\.]?\s*(.+)$/i);
+                if (!match) return;
+
+                const weekNumber = Number(match[1] || match[2] || match[3]);
+                const remainder = (match[4] || "").trim();
+                if (!weekNumber || !remainder) return;
+
+                const parts = remainder
+                    .split(/[|/]/)
+                    .map((part) => part.trim())
+                    .filter(Boolean);
+
+                const title = parts[0] || `${weekNumber}주차 강의`;
+                const topics = (parts.slice(1).length ? parts.slice(1) : remainder.split(","))
+                    .map((topic) => topic.trim())
+                    .filter(Boolean);
+
+                parsedWeeks.push({
+                    week: weekNumber,
+                    title,
+                    topics: topics.length ? topics : [title]
+                });
+            });
+
+            return parsedWeeks
+                .sort((a, b) => a.week - b.week)
+                .filter((week, index, array) => array.findIndex((item) => item.week === week.week) === index);
+        };
+
+        const extractTextFromSyllabusFile = async (file) => {
+            const lowerName = file.name.toLowerCase();
+
+            if (lowerName.endsWith(".docx")) {
+                if (!window.mammoth) {
+                    throw new Error("DOCX 추출 도구가 로드되지 않았습니다. 잠시 후 다시 시도해 주세요.");
+                }
+
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await window.mammoth.extractRawText({ arrayBuffer });
+                return (result.value || "").trim();
+            }
+
+            if (lowerName.endsWith(".txt") || lowerName.endsWith(".md")) {
+                return (await file.text()).trim();
+            }
+
+            if (lowerName.endsWith(".doc")) {
+                throw new Error("구형 .doc 파일은 브라우저에서 바로 분석하기 어렵습니다. 가능하면 .docx로 저장한 뒤 업로드해 주세요.");
+            }
+
+            throw new Error("지원하지 않는 파일 형식입니다. .docx, .txt, .md 파일을 사용해 주세요.");
+        };
+
+        // --- [초기 과목 데이터] ---
+        const INITIAL_COURSES = [
+            {
+                id: "c1", title: "가상증강현실", code: "SH317-A", professor: "오석희", target: "소프트웨어학과 3,4학년", overview: "가상의 세계를 시각, 청각, 촉각적으로 사실감 있게 재현하여 사용자에게 몰입감을 제공하는 기본적인 기술을 학습한다.", isLinkedToDrive: false,
+                weeks: [
+                    { week: 1, title: "가상증강현실 강의 개요", topics: ["수업 운영 및 평가 소개", "유니티 게임엔진 소개"] },
+                    { week: 2, title: "유니티게임엔진 기초1", topics: ["유니티 설치 및 화면 UI", "기본 기능"] },
+                    { week: 9, title: "VR 기초 (실습)", topics: ["VR 이동", "오브젝트", "소켓"] }
+                ],
+                students: [{
+                    id: 1,
+                    name: "김학생",
+                    status: "미채점",
+                    time: "어제 제출",
+                    assignment: "VR 기초 실습",
+                    latestScore: null,
+                    submission: createMockSubmission("가상증강현실", "김학생", "VR 기초 실습")
+                }],
+                atRiskStudents: [{ id: 101, name: "박결석", issue: "연속 3주 결석", severity: "High", lastLogin: "14일 전" }],
+                assignmentBank: [],
+                syllabusText: [
+                    "1주차: 가상증강현실 강의 개요 | 수업 운영 및 평가 소개 | 유니티 게임엔진 소개",
+                    "2주차: 유니티게임엔진 기초1 | 유니티 설치 및 화면 UI | 기본 기능",
+                    "9주차: VR 기초 (실습) | VR 이동 | 오브젝트 | 소켓"
+                ].join("\n"),
+                lmsCourse: {
+                    term: "2026-1학기",
+                    section: "A반",
+                    code: "XR201",
+                    syncStatus: "연동 준비",
+                    lastSync: "미연동"
+                }
+            },
+            {
+                id: "c2", title: "XR콘텐츠입문", code: "XR201-A", professor: "오석희", target: "AI·SW학 2학년", overview: "XR콘텐츠의 처리를 위한 기본적인 개념들에 대하여 배우며 다양한 디지털 미디어에 대한 처리기술을 학습한다.", isLinkedToDrive: true,
+                weeks: [
+                    { week: 1, title: "XR콘텐츠 개요", topics: ["XR 환경에서의 UX 평가"] },
+                    { week: 4, title: "생성형 AI와 XR", topics: ["생성형 AI의 이해"] },
+                    { week: 5, title: "생성형 AI 창작 (실습)", topics: ["미드저니 활용"] }
+                ],
+                students: [{
+                    id: 4,
+                    name: "최메타",
+                    status: "미채점",
+                    time: "3시간 전",
+                    assignment: "미드저니 기획안",
+                    latestScore: null,
+                    submission: createMockSubmission("XR콘텐츠입문", "최메타", "미드저니 기획안")
+                }],
+                atRiskStudents: [],
+                assignmentBank: [],
+                syllabusText: [
+                    "1주차: XR콘텐츠 개요 | XR 환경에서의 UX 평가",
+                    "4주차: 생성형 AI와 XR | 생성형 AI의 이해",
+                    "5주차: 생성형 AI 창작 (실습) | 미드저니 활용"
+                ].join("\n"),
+                lmsCourse: {
+                    term: "2026-1학기",
+                    section: "A반",
+                    code: "XR201",
+                    syncStatus: "부분 연동",
+                    lastSync: "방금 전"
+                }
+            }
+        ];
+
+        // --- [Components] ---
+        function NavItem({ iconName, label, active, onClick }) {
+            const IconComp = Icons[iconName];
+            return (
+                <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-all duration-200 ${active ? 'bg-indigo-600 text-white shadow-md transform scale-[1.02]' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                    <IconComp size={18} /> {label}
+                </button>
+            );
+        }
+
+        function StatCard({ iconName, title, value, iconClass="text-indigo-600" }) {
+            const IconComp = Icons[iconName];
+            return (
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center">
+                        <IconComp size={24} className={iconClass} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-slate-400 mb-1">{title}</p>
+                        <p className="text-2xl font-black text-slate-800 tracking-tight">{value}</p>
+                    </div>
+                </div>
+            );
+        }
+
+        // 로그인 화면 (API 키 입력란 포함)
+        function LoginScreen({ onLogin, initialModel }) {
+            const savedKey = localStorage.getItem(STORAGE_KEYS.apiKey) || "";
+            const savedModel = localStorage.getItem(STORAGE_KEYS.model);
+            const normalizedInitialModel = OPENAI_MODELS.some((model) => model.value === savedModel)
+                ? savedModel
+                : (initialModel || DEFAULT_OPENAI_MODEL);
+            const [inputKey, setInputKey] = useState(savedKey);
+            const [selectedModel, setSelectedModel] = useState(normalizedInitialModel);
+            const [rememberKey, setRememberKey] = useState(Boolean(savedKey));
+            const [localError, setLocalError] = useState("");
+
+            const handleLogin = () => {
+                const trimmedKey = inputKey.trim();
+
+                if (!trimmedKey && !apiKey) {
+                    setLocalError("OpenAI API 키를 입력해야 시작할 수 있습니다.");
+                    return;
+                }
+
+                if (rememberKey && trimmedKey) {
+                    localStorage.setItem(STORAGE_KEYS.apiKey, trimmedKey);
+                } else {
+                    localStorage.removeItem(STORAGE_KEYS.apiKey);
+                }
+
+                localStorage.setItem(STORAGE_KEYS.model, selectedModel);
+                onLogin({
+                    apiKey: trimmedKey,
+                    model: selectedModel
+                });
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}>
+                    <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-slate-100 p-10 relative overflow-hidden animate-slide-in-up">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                        <div className="flex justify-center mb-6 mt-2">
+                            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 transition-all">
+                                <Icons.Sparkles size={32} className="text-white" />
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-black text-center text-slate-800 mb-1 tracking-tight">AI EdTech Core</h2>
+                        <p className="text-center text-slate-500 text-sm mb-8 font-medium">교수-학습 전주기 AI 통합 모델</p>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-indigo-700 mb-1">OpenAI API Key (필수)</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="발급받은 OpenAI API 키를 입력해주세요." 
+                                    value={inputKey}
+                                    onChange={(e) => {
+                                        setInputKey(e.target.value);
+                                        if (localError) setLocalError("");
+                                    }}
+                                    className="w-full border-slate-300 border-2 rounded-lg p-3 text-sm bg-white outline-none focus:border-indigo-500 transition-colors shadow-inner" 
+                                />
+                                <p className="text-[10px] text-slate-400 mt-1">브라우저에서 직접 OpenAI API를 호출하므로 데모/내부 검토 용도로 사용하는 것을 권장합니다.</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-indigo-700 mb-1">응답 모델</label>
+                                <select
+                                    value={selectedModel}
+                                    onChange={(e) => setSelectedModel(e.target.value)}
+                                    className="w-full border-slate-300 border-2 rounded-lg p-3 text-sm bg-white outline-none focus:border-indigo-500 transition-colors"
+                                >
+                                    {OPENAI_MODELS.map((model) => (
+                                        <option key={model.value} value={model.value}>{model.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                <input
+                                    type="checkbox"
+                                    checked={rememberKey}
+                                    onChange={(e) => setRememberKey(e.target.checked)}
+                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                이 브라우저에 API 키 저장
+                            </label>
+                            {localError && (
+                                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                                    {localError}
+                                </div>
+                            )}
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 leading-relaxed">
+                                권장 사항: 운영 배포 시에는 브라우저 직결 대신 서버 프록시로 OpenAI API를 호출해 키를 숨기세요.
+                            </div>
+                            <button 
+                                onClick={handleLogin}
+                                className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all flex justify-center items-center gap-2 mt-2"
+                            >
+                                시스템 접속 <Icons.ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 자체 제작 에러 모달 (Alert을 띄우지 않고 화면 멈춤을 방지합니다)
+        function ErrorModal({ message, onClose }) {
+            if (!message) return null;
+            
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-red-100 flex flex-col">
+                        <div className="p-6 bg-red-50 flex flex-col items-center justify-center border-b border-red-100">
+                            <Icons.AlertCircle size={40} className="text-red-500 mb-3" />
+                            <h3 className="text-lg font-bold text-slate-800">시스템 오류 발생</h3>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-200 whitespace-pre-wrap break-all overflow-y-auto max-h-64">
+                                {message}
+                            </p>
+                        </div>
+                        <div className="p-4 bg-slate-50 flex justify-center border-t border-slate-100">
+                            <button onClick={onClose} className="bg-slate-900 text-white px-8 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-slate-800 transition-colors w-full">
+                                확인 및 돌아가기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 과목 추가 모달
+        function AddCourseModal({ isOpen, onClose, onAdd, setErrorMsg }) {
+            const [title, setTitle] = useState("");
+            const [code, setCode] = useState("");
+            const [target, setTarget] = useState("");
+            const [overview, setOverview] = useState("");
+
+            if (!isOpen) return null;
+
+            const handleSubmit = () => {
+                if(!title) {
+                    setErrorMsg("새로운 교과목명을 입력해주세요.");
+                    return;
+                }
+                onAdd({
+                    id: "c" + Date.now(), title, code, professor: "오석희", target, overview, isLinkedToDrive: false,
+                    weeks: [
+                        { week: 1, title: "강의 소개", topics: ["과목 오리엔테이션"] },
+                        { week: 2, title: "기초 이론", topics: ["핵심 개념 정리"] }
+                    ],
+                    students: [], atRiskStudents: [], assignmentBank: [], syllabusText: ""
+                });
+                onClose();
+            };
+
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+                        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                            <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Icons.PlusCircle size={20} className="text-indigo-600"/> 새 교과목 등록</h3>
+                            <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icons.X size={20} /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex gap-4">
+                                <div className="flex-1"><label className="block text-xs font-bold mb-1 text-slate-600">교과목명 *</label><input value={title} onChange={e=>setTitle(e.target.value)} className="w-full border rounded p-2 text-sm focus:border-indigo-500 outline-none" placeholder="예: 미디어의 이해"/></div>
+                                <div className="w-1/3"><label className="block text-xs font-bold mb-1 text-slate-600">학수번호</label><input value={code} onChange={e=>setCode(e.target.value)} className="w-full border rounded p-2 text-sm focus:border-indigo-500 outline-none" placeholder="예: MC001"/></div>
+                            </div>
+                            <div><label className="block text-xs font-bold mb-1 text-slate-600">수강 대상</label><input value={target} onChange={e=>setTarget(e.target.value)} className="w-full border rounded p-2 text-sm focus:border-indigo-500 outline-none" placeholder="예: 미디어계열 1학년"/></div>
+                            <div><label className="block text-xs font-bold mb-1 text-slate-600">수업 개요</label><textarea value={overview} onChange={e=>setOverview(e.target.value)} className="w-full border rounded p-2 text-sm h-24 focus:border-indigo-500 outline-none" placeholder="과목의 전반적인 학습 목표 및 개요를 입력하세요."></textarea></div>
+                        </div>
+                        <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                            <button onClick={onClose} className="px-4 py-2 rounded text-sm font-bold text-slate-600 hover:bg-slate-200">취소</button>
+                            <button onClick={handleSubmit} className="px-4 py-2 rounded text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow">강의실 개설</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- [Sub Views] ---
+        function DashboardView({ courses, onNavigate, onOpenAddModal }) {
+            const pendingGrades = courses.reduce((acc, c) => acc + c.students.filter(s => s.status === '미채점').length, 0);
+            const atRiskCount = courses.reduce((acc, c) => acc + (c.atRiskStudents ? c.atRiskStudents.length : 0), 0);
+
+            return (
+                <div className="p-8 animate-fade-in">
+                    <header className="mb-8">
+                        <h2 className="text-2xl font-bold text-slate-800">교수자 대시보드</h2>
+                        <p className="text-slate-500 mt-1">이번 학기 개설된 교과목 현황과 할 일을 한눈에 확인하세요.</p>
+                    </header>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <StatCard iconName="BookOpen" title="운영 중인 과목" value={`${courses.length}개`} />
+                        <StatCard iconName="AlertCircle" iconClass="text-amber-500" title="채점 대기 건수" value={`${pendingGrades}건`} />
+                        <StatCard iconName="TrendingDown" iconClass="text-red-500" title="위험 알림 학생" value={`${atRiskCount}명`} />
+                    </div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-bold text-slate-800">2026학년도 1학기 과목 관리</h3>
+                        <button onClick={onOpenAddModal} className="text-sm text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+                            <Icons.PlusCircle size={16} /> 새 과목 등록
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                        {courses.map(course => (
+                            <div key={course.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow relative">
+                                {course.isLinkedToDrive && <div className="absolute top-0 right-0 w-12 h-12 bg-green-500 transform rotate-45 translate-x-6 -translate-y-6"></div>}
+                                {course.isLinkedToDrive && <div className="absolute top-2 right-2 text-white z-10" title="Drive Linked"><Icons.Database size={12}/></div>}
+                                <div className="p-6 h-full flex flex-col">
+                                    <div className="mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded">진행중</span>
+                                            <span className="text-xs text-slate-400 font-medium">{course.code}</span>
+                                        </div>
+                                        <h4 className="text-lg font-bold text-slate-800 leading-tight truncate">{course.title}</h4>
+                                    </div>
+                                    <div className="flex-1"></div>
+                                    <div className="border-t border-slate-100 pt-4 mt-4 space-y-2">
+                                        <button onClick={() => onNavigate('syllabus', course.id)} className="w-full flex justify-between items-center text-sm text-slate-600 hover:text-indigo-600 font-bold px-2 py-1.5 rounded hover:bg-slate-50">
+                                            <span className="flex items-center gap-2"><Icons.FileText size={14} /> 1. 강의 설계</span> <Icons.ChevronRight size={14} className="text-slate-400" />
+                                        </button>
+                                        <button onClick={() => onNavigate('assignments', course.id)} className="w-full flex justify-between items-center text-sm text-slate-600 hover:text-indigo-600 font-bold px-2 py-1.5 rounded hover:bg-slate-50">
+                                            <span className="flex items-center gap-2"><Icons.FileQuestion size={14} /> 2. 평가 및 과제 설계</span> <Icons.ChevronRight size={14} className="text-slate-400" />
+                                        </button>
+                                        <button onClick={() => onNavigate('evaluation', course.id)} className="w-full flex justify-between items-center text-sm text-slate-600 hover:text-indigo-600 font-bold px-2 py-1.5 rounded hover:bg-slate-50">
+                                            <span className="flex items-center gap-2"><Icons.Clock size={14} /> 3. 채점 대기 ({course.students.length}건)</span> <Icons.ChevronRight size={14} className="text-slate-400" />
+                                        </button>
+                                        <button onClick={() => onNavigate('intervention', course.id)} className="w-full flex justify-between items-center text-sm text-slate-600 hover:text-indigo-600 font-bold px-2 py-1.5 rounded hover:bg-slate-50">
+                                            <span className="flex items-center gap-2"><Icons.TrendingDown size={14} /> 4. 진도 점검 및 개입</span> <Icons.ChevronRight size={14} className="text-slate-400" />
+                                        </button>
+                                        <button onClick={() => onNavigate('reflection', course.id)} className="w-full flex justify-between items-center text-sm text-slate-600 hover:text-indigo-600 font-bold px-2 py-1.5 rounded hover:bg-slate-50">
+                                            <span className="flex items-center gap-2"><Icons.BarChart size={14} /> 5. 성찰 및 개선</span> <Icons.ChevronRight size={14} className="text-slate-400" />
+                                        </button>
+                                        <button onClick={() => onNavigate('lms', course.id)} className="w-full flex justify-between items-center text-sm text-slate-600 hover:text-green-700 font-bold px-2 py-1.5 rounded hover:bg-green-50">
+                                            <span className="flex items-center gap-2"><Icons.Database size={14} /> LMS 연동 센터</span> <Icons.ChevronRight size={14} className="text-slate-400" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // 1. 강의 설계
+        function SyllabusView({ course, isGenerating, setIsGenerating, setAiMessage, setErrorMsg, apiConfig, onAddWeek, onSaveSyllabusText, onImportSyllabusWeeks }) {
+            const [selectedWeek, setSelectedWeek] = useState(null);
+            const [generatedMaterial, setGeneratedMaterial] = useState(null);
+            const [newWeekNumber, setNewWeekNumber] = useState("");
+            const [newWeekTitle, setNewWeekTitle] = useState("");
+            const [newWeekTopics, setNewWeekTopics] = useState("");
+            const [syllabusDraft, setSyllabusDraft] = useState(course.syllabusText || "");
+
+            useEffect(() => {
+                setSyllabusDraft(course.syllabusText || "");
+            }, [course.id, course.syllabusText]);
+
+            const buildWeeksFromSyllabusText = async (text) => {
+                const directParsedWeeks = parseWeeksFromSyllabusText(text);
+                if (directParsedWeeks.length > 0) {
+                    return directParsedWeeks;
+                }
+
+                const schema = {
+                    type: "OBJECT",
+                    properties: {
+                        weeks: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    week: { type: "NUMBER" },
+                                    title: { type: "STRING" },
+                                    topics: { type: "ARRAY", items: { type: "STRING" } }
+                                },
+                                required: ["week", "title", "topics"]
+                            }
+                        }
+                    },
+                    required: ["weeks"]
+                };
+
+                const prompt = [
+                    `다음 강의계획서 텍스트를 읽고 주차별 강의설계로 구조화하세요.`,
+                    `반드시 주차 번호(week), 주차 제목(title), 세부 주제 목록(topics)을 반환하세요.`,
+                    `주차가 명시되지 않은 문단은 무시하고, 확인 가능한 주차만 정리하세요.`,
+                    "",
+                    text
+                ].join("\n");
+
+                const result = await runStructuredGeneration({
+                    prompt,
+                    schema,
+                    apiConfig,
+                    setAiMessage,
+                    setIsGenerating,
+                    setErrorMsg,
+                    loadingMessage: "강의계획서를 분석해 주차 설계로 변환 중입니다..."
+                });
+
+                return (result?.weeks || [])
+                    .map((week) => ({
+                        week: Number(week.week),
+                        title: (week.title || "").trim(),
+                        topics: (week.topics || []).map((topic) => topic.trim()).filter(Boolean)
+                    }))
+                    .filter((week) => week.week && week.title && week.topics.length > 0)
+                    .sort((a, b) => a.week - b.week)
+                    .filter((week, index, array) => array.findIndex((item) => item.week === week.week) === index);
+            };
+
+            const handleGenerateMaterial = async (week) => {
+                const schema = { 
+                    type: "OBJECT", 
+                    properties: { 
+                        outline: { type: "ARRAY", items: { type: "STRING" } }, 
+                        concept: { type: "STRING" } 
+                    }, 
+                    required: ["outline", "concept"] 
+                };
+
+                const rag = (course.isLinkedToDrive && XR_KNOWLEDGE_BASE[week.week]) ? `[드라이브 RAG]\n${XR_KNOWLEDGE_BASE[week.week]}` : "";
+                const prompt = `과목명:${course.title}\n주제:${week.topics.join(',')}\n${rag}\nPPT 아웃라인(outline)과 핵심 개념(concept)을 작성하세요.`;
+
+                const result = await runStructuredGeneration({
+                    prompt,
+                    schema,
+                    apiConfig,
+                    setAiMessage,
+                    setIsGenerating,
+                    setErrorMsg,
+                    loadingMessage: `AI가 [${course.title}] ${week.week}주차 데이터를 분석하여 강의 자료를 생성 중입니다...`
+                });
+
+                if(result) { 
+                    setGeneratedMaterial({ week: week.week, outline: result.outline, concept: result.concept }); 
+                    setSelectedWeek(week.week); 
+                }
+            };
+
+            const handleAddWeek = () => {
+                const weekNumber = Number(newWeekNumber);
+                const title = newWeekTitle.trim();
+                const topics = newWeekTopics
+                    .split(",")
+                    .map((topic) => topic.trim())
+                    .filter(Boolean);
+
+                if (!weekNumber || !title || topics.length === 0) {
+                    setErrorMsg("주차 번호, 모듈명, 주제를 모두 입력해 주세요.");
+                    return;
+                }
+
+                if (course.weeks.some((week) => week.week === weekNumber)) {
+                    setErrorMsg(`${weekNumber}주차는 이미 존재합니다. 다른 주차 번호를 입력해 주세요.`);
+                    return;
+                }
+
+                onAddWeek(course.id, {
+                    week: weekNumber,
+                    title,
+                    topics
+                });
+
+                setNewWeekNumber("");
+                setNewWeekTitle("");
+                setNewWeekTopics("");
+                setSelectedWeek(weekNumber);
+                setGeneratedMaterial(null);
+            };
+
+            const handleSaveSyllabus = () => {
+                if (!syllabusDraft.trim()) {
+                    setErrorMsg("저장할 강의계획서 내용이 없습니다.");
+                    return;
+                }
+
+                onSaveSyllabusText(course.id, syllabusDraft.trim());
+            };
+
+            const handleImportFromSyllabus = async () => {
+                const parsedWeeks = await buildWeeksFromSyllabusText(syllabusDraft);
+
+                if (parsedWeeks.length === 0) {
+                    setErrorMsg("강의계획서에서 주차 정보를 찾지 못했습니다. 파일 형식이나 본문 구성을 확인해 주세요.");
+                    return;
+                }
+
+                onSaveSyllabusText(course.id, syllabusDraft.trim());
+                onImportSyllabusWeeks(course.id, parsedWeeks);
+                setSelectedWeek(parsedWeeks[0].week);
+                setGeneratedMaterial(null);
+            };
+
+            const handleSyllabusFileUpload = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                try {
+                    const extractedText = await extractTextFromSyllabusFile(file);
+
+                    if (!extractedText) {
+                        setErrorMsg("업로드한 파일에서 읽을 수 있는 텍스트를 찾지 못했습니다.");
+                        return;
+                    }
+
+                    setSyllabusDraft(extractedText);
+                    onSaveSyllabusText(course.id, extractedText);
+
+                    const parsedWeeks = await buildWeeksFromSyllabusText(extractedText);
+                    if (parsedWeeks.length === 0) {
+                        setErrorMsg("파일은 읽었지만 주차 구조를 만들지 못했습니다. 강의계획서 내용을 확인해 주세요.");
+                        return;
+                    }
+
+                    onImportSyllabusWeeks(course.id, parsedWeeks);
+                    setSelectedWeek(parsedWeeks[0].week);
+                    setGeneratedMaterial(null);
+                } catch (error) {
+                    setErrorMsg(error.message);
+                } finally {
+                    event.target.value = "";
+                }
+            };
+
+            return (
+                <div className="p-8 animate-fade-in">
+                    <header className="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.BookOpen className="text-indigo-600"/> ① 강의 설계의 체계화</h2>
+                            <p className="text-slate-500 text-sm mt-1">{course.title} 과목의 교육과정을 구성하고 자료를 생성합니다.</p>
+                        </div>
+                    </header>
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.FileText size={18} className="text-indigo-600" /> 강의계획서</h3>
+                                    <span className="text-xs text-slate-400">저장 후 강의설계로 즉시 변환</span>
+                                </div>
+                                <div className="space-y-3">
+                                    <textarea
+                                        value={syllabusDraft}
+                                        onChange={(e) => setSyllabusDraft(e.target.value)}
+                                        className="w-full border rounded-lg px-3 py-2 text-sm h-44"
+                                        placeholder={"예:\n1주차: XR 개요 | 수업 소개 | 평가 안내\n2주차: 유니티 기초 | 인터페이스 | 오브젝트"}
+                                    />
+                                    <label className="w-full flex items-center justify-center gap-2 bg-slate-50 border border-dashed border-slate-300 text-slate-700 font-bold py-2.5 rounded-lg text-sm hover:bg-slate-100 cursor-pointer">
+                                        <Icons.FolderOpen size={16} />
+                                        DOC 강의계획서 업로드 후 자동 설계
+                                        <input type="file" accept=".doc,.docx,.txt,.md" onChange={handleSyllabusFileUpload} className="hidden" />
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={handleSaveSyllabus} className="w-full bg-white border border-slate-300 text-slate-700 font-bold py-2.5 rounded-lg text-sm hover:bg-slate-50">
+                                            강의계획서 저장
+                                        </button>
+                                        <button onClick={handleImportFromSyllabus} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-indigo-700">
+                                            강의설계로 불러오기
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.PlusCircle size={18} className="text-indigo-600" /> 강의설계 추가</h3>
+                                    <span className="text-xs text-slate-400">주차별 모듈 직접 등록</span>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-[110px_1fr] gap-3">
+                                        <input value={newWeekNumber} onChange={(e) => setNewWeekNumber(e.target.value)} type="number" min="1" className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="주차" />
+                                        <input value={newWeekTitle} onChange={(e) => setNewWeekTitle(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="예: XR 인터랙션 설계" />
+                                    </div>
+                                    <textarea value={newWeekTopics} onChange={(e) => setNewWeekTopics(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm h-24" placeholder="주제를 쉼표로 구분해 입력하세요. 예: 사용자 여정 설계, 상호작용 시나리오, 평가 기준" />
+                                    <button onClick={handleAddWeek} className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-slate-800">
+                                        강의설계 추가
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                            <div className="px-5 py-4 border-b bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.GripVertical size={18}/> 주차별 모듈</h3>
+                                    <p className="text-xs text-slate-500 mt-1">15주 설계를 염두에 둔 전체 모듈 보기입니다. 각 주차를 선택해 AI 자료를 생성할 수 있습니다.</p>
+                                </div>
+                                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">
+                                    총 {(course.weeks || []).length}개 모듈
+                                </span>
+                            </div>
+                            <div className="p-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
+                                    {course.weeks
+                                        .slice()
+                                        .sort((a, b) => a.week - b.week)
+                                        .map((week) => (
+                                        <div key={week.week} className={`bg-white border rounded-2xl p-5 shadow-sm transition-all ${selectedWeek === week.week ? 'border-indigo-500 ring-2 ring-indigo-200 shadow-md' : 'border-slate-200 hover:border-indigo-200 hover:shadow-md'}`}>
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                <div>
+                                                    <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700">{week.week}주차</span>
+                                                    <h4 className="font-bold text-slate-800 text-lg mt-2 leading-snug">{week.title}</h4>
+                                                </div>
+                                                <button onClick={() => handleGenerateMaterial(week)} className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-indigo-100 flex items-center gap-1 shrink-0">
+                                                    <Icons.Sparkles size={14} /> AI 생성
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {week.topics.map((topic, idx) => (
+                                                    <div key={idx} className="text-sm text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
+                                                        {topic}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                            <div className="p-4 border-b bg-slate-50 flex items-center gap-2">
+                                <Icons.Sparkles className="text-indigo-600" size={18} /> <h3 className="font-bold text-slate-800">AI 콘텐츠 엔진</h3>
+                            </div>
+                            <div className="p-5">
+                                {!generatedMaterial ? (
+                                    <div className="py-16 flex flex-col items-center justify-center text-slate-400">
+                                        <Icons.PlayCircle size={40} className="mb-3 opacity-30" />
+                                        <p className="text-sm">위 주차별 모듈에서 AI 생성을 클릭하면 이 영역에 결과가 표시됩니다.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-5 animate-fade-in">
+                                        <div>
+                                            <h4 className="text-xs font-bold text-indigo-600 mb-2 flex items-center gap-1"><Icons.FileText size={14}/> PPT 흐름</h4>
+                                            <div className="bg-slate-50 p-4 rounded-lg text-sm space-y-2 border">
+                                                {generatedMaterial.outline.map((item, idx) => <p key={idx} className="text-slate-700 font-medium">{item}</p>)}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-indigo-600 mb-2 flex items-center gap-1"><Icons.CheckCircle size={14}/> 핵심 개념</h4>
+                                            <div className="bg-indigo-50/60 p-4 rounded-lg text-sm border border-indigo-100">
+                                                <p className="text-slate-800 font-medium leading-relaxed">{generatedMaterial.concept}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 2. 평가 및 과제 설계
+        function AssignmentsView({ course, isGenerating, setIsGenerating, setAiMessage, setErrorMsg, apiConfig, onSaveAssignment }) {
+            const [generatedAssignment, setGeneratedAssignment] = useState(null);
+            const [selectedTarget, setSelectedTarget] = useState(course.weeks[0]?.title || "");
+            const [selectedBloom, setSelectedBloom] = useState("적용/분석 (프로젝트/사례연구)");
+            const [selectedBankItemId, setSelectedBankItemId] = useState(null);
+
+            const handleGenerate = async () => {
+                const schema = { 
+                    type: "OBJECT", 
+                    properties: { 
+                        title: { type: "STRING" }, 
+                        description: { type: "STRING" }, 
+                        rubric: { 
+                            type: "ARRAY",
+                            minItems: 3,
+                            items: { 
+                                type: "OBJECT",
+                                properties: { 
+                                    criteria: { type: "STRING" },
+                                    desc: { type: "STRING" },
+                                    points: { type: "NUMBER" } 
+                                },
+                                required: ["criteria", "desc", "points"]
+                            } 
+                        } 
+                    }, 
+                    required: ["title", "description", "rubric"] 
+                };
+
+                const targetWeekInfo = course.weeks.find(w => w.title === selectedTarget);
+                const ragContext = (course.isLinkedToDrive && targetWeekInfo) ? `[구글 드라이브 교안 데이터]\n${XR_KNOWLEDGE_BASE[targetWeekInfo.week] || ''}` : "";
+                const prompt = `과목명:${course.title}\n주제:${selectedTarget}\nBloom수준:${selectedBloom}\n${ragContext}\n과제 설명(description)과 루브릭(rubric) 생성`;
+
+                const result = await runStructuredGeneration({
+                    prompt,
+                    schema,
+                    apiConfig,
+                    setAiMessage,
+                    setIsGenerating,
+                    setErrorMsg,
+                    loadingMessage: "과제 및 평가 루브릭을 설계 중입니다..."
+                });
+
+                if(result) {
+                    setGeneratedAssignment(result);
+                    setSelectedBankItemId(null);
+                }
+            };
+
+            const handleSaveAssignment = () => {
+                if (!generatedAssignment) {
+                    setErrorMsg("저장할 과제 초안이 없습니다. 먼저 AI 과제를 생성해 주세요.");
+                    return;
+                }
+
+                const targetWeekInfo = course.weeks.find((week) => week.title === selectedTarget);
+                const assignmentRecord = {
+                    id: `ab-${Date.now()}`,
+                    title: generatedAssignment.title,
+                    description: generatedAssignment.description,
+                    rubric: generatedAssignment.rubric,
+                    targetWeek: selectedTarget,
+                    targetWeekNumber: targetWeekInfo?.week || null,
+                    bloomLevel: selectedBloom,
+                    createdAt: new Date().toLocaleString("ko-KR")
+                };
+
+                onSaveAssignment(course.id, assignmentRecord);
+                setSelectedBankItemId(assignmentRecord.id);
+            };
+
+            const selectedBankItem = (course.assignmentBank || []).find((item) => item.id === selectedBankItemId) || null;
+            const assignmentToDisplay = selectedBankItem || generatedAssignment;
+
+            return (
+                <div className="p-8 animate-fade-in">
+                    <header className="mb-6 border-b border-slate-200 pb-4">
+                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.FileQuestion className="text-indigo-600" /> ② 평가 및 과제 설계</h2>
+                    </header>
+                    <div className="bg-white rounded-xl shadow-sm border p-6 mb-6 flex items-end gap-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-bold mb-1">대상 주차</label>
+                            <select value={selectedTarget} onChange={(e) => setSelectedTarget(e.target.value)} className="w-full border rounded-lg p-2 text-sm">{course.weeks.map(w=><option key={w.week} value={w.title}>{w.week}주차: {w.title}</option>)}</select>
+                        </div>
+                        <div className="flex-1 w-full">
+                            <label className="block text-sm font-bold text-slate-700 mb-2">평가 인지 수준 (Bloom)</label>
+                            <select value={selectedBloom} onChange={(e) => setSelectedBloom(e.target.value)} className="w-full border-slate-300 border rounded-lg p-2.5 text-sm">
+                                <option>기억/이해 (개념 요약 리포트)</option>
+                                <option>적용/분석 (프로젝트/사례연구)</option>
+                                <option>평가/창출 (최종 기획안/결과물 제작)</option>
+                            </select>
+                        </div>
+                        <button onClick={handleGenerate} className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-sm"><Icons.Sparkles size={16}/> AI 과제 생성</button>
+                    </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.8fr] gap-6">
+                        <div>
+                    {assignmentToDisplay && (
+                        <div className="bg-white border border-indigo-200 rounded-xl p-6 shadow-md animate-fade-in">
+                            <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                                <div>
+                                    <h3 className="font-bold text-lg">{assignmentToDisplay.title}</h3>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        대상 주차: {selectedBankItem ? assignmentToDisplay.targetWeek : selectedTarget}
+                                        {" · "}
+                                        Bloom 수준: {selectedBankItem ? assignmentToDisplay.bloomLevel : selectedBloom}
+                                    </p>
+                                </div>
+                                {!selectedBankItem && (
+                                    <button onClick={handleSaveAssignment} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800">
+                                        과제 뱅크 저장
+                                    </button>
+                                )}
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-lg border text-sm mb-5 text-slate-700 font-medium leading-relaxed">{assignmentToDisplay.description}</div>
+                            <h4 className="font-bold text-sm mb-2 text-indigo-800"><Icons.CheckSquare size={16} className="inline mr-1"/> 채점 루브릭</h4>
+                            <table className="w-full text-sm text-left border-t border-slate-200">
+                                <tbody>
+                                    {assignmentToDisplay.rubric.map((r,i) => (
+                                        <tr key={i} className="border-b"><td className="py-3 font-bold w-1/4">{r.criteria}</td><td className="py-3 text-slate-600">{r.desc}</td><td className="py-3 font-bold text-indigo-600 text-right">{r.points}점</td></tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {!assignmentToDisplay && (
+                        <div className="bg-white border rounded-xl p-12 text-center text-slate-400 shadow-sm">
+                            <Icons.FileQuestion size={44} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">AI 과제를 생성하거나 우측 과제 뱅크에서 항목을 선택하세요.</p>
+                        </div>
+                    )}
+                        </div>
+
+                        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-slate-800">과제 뱅크</h3>
+                                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">
+                                    {(course.assignmentBank || []).length}개
+                                </span>
+                            </div>
+                            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                                {(course.assignmentBank || []).length === 0 ? (
+                                    <div className="border-2 border-dashed rounded-xl p-5 text-sm text-slate-400 text-center bg-slate-50">
+                                        저장된 과제가 아직 없습니다.
+                                    </div>
+                                ) : (
+                                    (course.assignmentBank || []).map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => {
+                                                setSelectedBankItemId(item.id);
+                                                setGeneratedAssignment(null);
+                                            }}
+                                            className={`w-full text-left border rounded-xl p-4 transition-colors ${
+                                                selectedBankItemId === item.id
+                                                    ? "border-indigo-500 bg-indigo-50"
+                                                    : "border-slate-200 hover:bg-slate-50"
+                                            }`}
+                                        >
+                                            <p className="font-bold text-sm text-slate-800">{item.title}</p>
+                                            <p className="text-xs text-slate-500 mt-1">{item.targetWeek} · {item.bloomLevel}</p>
+                                            <p className="text-[11px] text-slate-400 mt-2">{item.createdAt}</p>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function MiniBarChart({ title, items, colorClass = "bg-indigo-500" }) {
+            const maxValue = Math.max(...items.map((item) => item.value), 1);
+
+            return (
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <h4 className="font-bold text-slate-800 mb-4">{title}</h4>
+                    <div className="space-y-3">
+                        {items.map((item) => (
+                            <div key={item.label}>
+                                <div className="flex items-center justify-between text-xs mb-1">
+                                    <span className="font-medium text-slate-600">{item.label}</span>
+                                    <span className="font-bold text-slate-800">{item.value}</span>
+                                </div>
+                                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div
+                                        className={`${colorClass} h-full rounded-full transition-all duration-500`}
+                                        style={{ width: `${(item.value / maxValue) * 100}%` }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function LmsIntegrationView({ course, onNavigate }) {
+            const submissionCount = course.students.filter((student) => Boolean(student.submission?.content)).length;
+            const gradedCount = course.students.filter((student) => typeof student.latestScore === "number").length;
+            const assignmentBankCount = (course.assignmentBank || []).length;
+            const weekCount = (course.weeks || []).length;
+
+            return (
+                <div className="p-8 animate-fade-in">
+                    <header className="mb-6 border-b border-slate-200 pb-4">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.Database className="text-green-600" /> LMS 연동 센터</h2>
+                                <p className="text-slate-500 text-sm mt-1">한신대학교 교수자 LMS 메뉴와 현재 프로젝트의 기능 연결 지점을 한 화면에서 확인합니다.</p>
+                            </div>
+                            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm">
+                                <p className="font-bold text-green-800">{course.title}</p>
+                                <p className="text-green-700 text-xs mt-1">{course.lmsCourse?.term} · {course.lmsCourse?.section} · 학수번호 {course.lmsCourse?.code}</p>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <StatCard iconName="Database" title="LMS 연동 상태" value={course.lmsCourse?.syncStatus || "연동 준비"} iconClass="text-green-600" />
+                        <StatCard iconName="BookOpen" title="강의설계 모듈" value={`${weekCount}개`} />
+                        <StatCard iconName="FileQuestion" title="과제 뱅크" value={`${assignmentBankCount}개`} iconClass="text-indigo-500" />
+                        <StatCard iconName="CheckSquare" title="채점 저장" value={`${gradedCount}/${course.students.length}`} iconClass="text-amber-500" />
+                    </div>
+
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-6">
+                        <div className="px-5 py-4 border-b bg-slate-50 flex items-center justify-between">
+                            <h3 className="font-bold text-slate-800">교수자 LMS 연결 요약</h3>
+                            <span className="text-xs text-slate-500">최근 동기화: {course.lmsCourse?.lastSync || "미연동"}</span>
+                        </div>
+                        <div className="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr] gap-0">
+                            <div className="p-5 border-r border-slate-100">
+                                <h4 className="font-bold text-slate-800 mb-3">LMS에서 바로 가져오기 좋은 항목</h4>
+                                <ul className="space-y-3 text-sm text-slate-700">
+                                    <li className="bg-slate-50 border rounded-xl p-3">강의 리스트: 학기/분반/학수번호를 현재 과목 카드와 자동 매핑</li>
+                                    <li className="bg-slate-50 border rounded-xl p-3">강의계획서: 주차별 강의설계, 자료 생성, 수업 개요를 바로 반영</li>
+                                    <li className="bg-slate-50 border rounded-xl p-3">과제출제/채점: 과제 뱅크, 루브릭, 제출물, AI 채점 결과 동기화</li>
+                                    <li className="bg-slate-50 border rounded-xl p-3">수강생관리/성적산출결과: 제출률, 점수 분포, 위험 학생 분석 연결</li>
+                                </ul>
+                            </div>
+                            <div className="p-5 bg-slate-50/60">
+                                <h4 className="font-bold text-slate-800 mb-3">현재 프로젝트에 이미 적용된 연결</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="bg-white border rounded-xl p-4">
+                                        <p className="text-xs font-bold text-indigo-600 mb-1">강의계획서</p>
+                                        <p className="text-sm text-slate-700">강의설계 {weekCount}개 모듈, AI 자료 생성, 직접 주차 추가 가능</p>
+                                    </div>
+                                    <div className="bg-white border rounded-xl p-4">
+                                        <p className="text-xs font-bold text-indigo-600 mb-1">과제출제/채점</p>
+                                        <p className="text-sm text-slate-700">과제 뱅크 {assignmentBankCount}개, 루브릭 생성 및 저장 가능</p>
+                                    </div>
+                                    <div className="bg-white border rounded-xl p-4">
+                                        <p className="text-xs font-bold text-indigo-600 mb-1">LMS 제출물</p>
+                                        <p className="text-sm text-slate-700">제출물 {submissionCount}건 연결, 교수 직접 업로드 및 가상 LMS 불러오기 지원</p>
+                                    </div>
+                                    <div className="bg-white border rounded-xl p-4">
+                                        <p className="text-xs font-bold text-indigo-600 mb-1">성적산출결과</p>
+                                        <p className="text-sm text-slate-700">채점 저장 {gradedCount}건, 성적 분포도 및 성찰 리포트 반영</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-5 py-4 border-b bg-slate-50">
+                            <h3 className="font-bold text-slate-800">메뉴별 연결 제안</h3>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {LMS_SECTION_PRESETS.map((section) => (
+                                <div key={section.id} className="px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+                                    <div className="min-w-[260px] flex-1">
+                                        <p className="text-xs font-bold text-slate-400 mb-1">교수자 LMS 메뉴</p>
+                                        <p className="font-bold text-slate-800">{section.lmsLabel}</p>
+                                        <p className="text-sm text-slate-600 mt-1">{section.summary}</p>
+                                    </div>
+                                    <div className="min-w-[220px]">
+                                        <p className="text-xs font-bold text-green-700 mb-1">프로젝트 연결 위치</p>
+                                        <button onClick={() => onNavigate(section.targetMenu, course.id)} className="w-full bg-indigo-50 text-indigo-700 border border-indigo-100 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-100">
+                                            {section.projectLabel} 열기
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 3. AI 채점 및 피드백
+        function EvaluationView({ course, isGenerating, setIsGenerating, setAiMessage, setErrorMsg, apiConfig, onUpdateSubmission, onSaveScore }) {
+            const [activeStudent, setActiveStudent] = useState(null);
+            const [aiFeedback, setAiFeedback] = useState(null);
+            const [manualTitle, setManualTitle] = useState("");
+            const [manualContent, setManualContent] = useState("");
+
+            const submissionChartItems = [
+                { label: "제출 완료", value: course.students.filter((student) => Boolean(student.submission?.content)).length },
+                { label: "미제출", value: course.students.filter((student) => !student.submission?.content).length },
+                { label: "채점 완료", value: course.students.filter((student) => typeof student.latestScore === "number").length }
+            ];
+
+            const scoreBandCounts = course.students.reduce((acc, student) => {
+                if (typeof student.latestScore !== "number") {
+                    acc["미채점"] += 1;
+                } else if (student.latestScore >= 90) {
+                    acc["90-100"] += 1;
+                } else if (student.latestScore >= 80) {
+                    acc["80-89"] += 1;
+                } else if (student.latestScore >= 70) {
+                    acc["70-79"] += 1;
+                } else {
+                    acc["0-69"] += 1;
+                }
+                return acc;
+            }, { "90-100": 0, "80-89": 0, "70-79": 0, "0-69": 0, "미채점": 0 });
+
+            const scoreChartItems = [
+                { label: "90-100", value: scoreBandCounts["90-100"] },
+                { label: "80-89", value: scoreBandCounts["80-89"] },
+                { label: "70-79", value: scoreBandCounts["70-79"] },
+                { label: "0-69", value: scoreBandCounts["0-69"] },
+                { label: "미채점", value: scoreBandCounts["미채점"] }
+            ];
+
+            useEffect(() => {
+                if (!activeStudent) return;
+
+                const latestStudent = course.students.find((student) => student.id === activeStudent.id);
+                if (latestStudent) {
+                    setActiveStudent(latestStudent);
+                }
+            }, [course.students, activeStudent]);
+
+            const applySubmissionUpdate = (submission, nextStatus = "미채점", nextTime = "방금 반영") => {
+                if (!activeStudent) return;
+
+                onUpdateSubmission(course.id, activeStudent.id, {
+                    submission,
+                    status: nextStatus,
+                    time: nextTime
+                });
+
+                setActiveStudent((prev) => prev ? ({
+                    ...prev,
+                    submission,
+                    status: nextStatus,
+                    time: nextTime
+                }) : prev);
+                setAiFeedback(null);
+            };
+
+            const handleLoadFromLms = () => {
+                if (!activeStudent) {
+                    setErrorMsg("제출물을 불러올 학생을 먼저 선택해 주세요.");
+                    return;
+                }
+
+                const submission = createMockSubmission(course.title, activeStudent.name, activeStudent.assignment);
+                applySubmissionUpdate(submission, "미채점", "LMS 불러오기 완료");
+            };
+
+            const handleManualUpload = () => {
+                if (!activeStudent) {
+                    setErrorMsg("직접 업로드할 학생을 먼저 선택해 주세요.");
+                    return;
+                }
+
+                const title = manualTitle.trim();
+                const content = manualContent.trim();
+
+                if (!title || !content) {
+                    setErrorMsg("과제 제목과 제출 내용을 모두 입력해 주세요.");
+                    return;
+                }
+
+                const submission = {
+                    source: "manual",
+                    title,
+                    fileName: `${activeStudent.name}_${title.replace(/\s+/g, "_")}.txt`,
+                    submittedAt: new Date().toLocaleString("ko-KR"),
+                    content
+                };
+
+                applySubmissionUpdate(submission, "미채점", "교수 직접 업로드");
+                setManualTitle("");
+                setManualContent("");
+            };
+
+            const handleManualFile = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    setManualTitle(file.name.replace(/\.[^.]+$/, ""));
+                    setManualContent(text);
+                } catch (error) {
+                    setErrorMsg("텍스트 기반 파일만 불러올 수 있습니다.");
+                } finally {
+                    event.target.value = "";
+                }
+            };
+             
+            const handleFeedback = async () => {
+                if (!activeStudent) {
+                    setErrorMsg("피드백을 생성할 학생을 먼저 선택해 주세요.");
+                    return;
+                }
+
+                if (!activeStudent.submission?.content) {
+                    setErrorMsg("채점할 제출물이 없습니다. LMS 제출을 불러오거나 교수 직접 업로드를 먼저 진행해 주세요.");
+                    return;
+                }
+
+                const schema = { 
+                    type: "OBJECT", 
+                    properties: { 
+                        score: { type: "NUMBER" }, strengths: { type: "STRING" }, weaknesses: { type: "STRING" }, suggestion: { type: "STRING" } 
+                    }, 
+                    required: ["score", "strengths", "weaknesses", "suggestion"] 
+                };
+
+                const ragContext = course.isLinkedToDrive ? `[구글 드라이브 교안 데이터]\n${XR_KNOWLEDGE_BASE[5] || ''}` : "";
+                const submissionContext = [
+                    `제출 제목:${activeStudent.submission.title || activeStudent.assignment || "과제 제출본"}`,
+                    `제출 경로:${activeStudent.submission.source === "lms" ? "LMS 연동(가상)" : "교수 직접 업로드"}`,
+                    `제출 시각:${activeStudent.submission.submittedAt || activeStudent.time || "미상"}`,
+                    `제출 내용:\n${activeStudent.submission.content}`
+                ].join("\n");
+                const prompt = `과제 피드백\n학생이름:${activeStudent.name}\n${submissionContext}\n${ragContext}\n점수(score), 강점(strengths), 약점(weaknesses), 제언(suggestion) 생성`;
+
+                const result = await runStructuredGeneration({
+                    prompt,
+                    schema,
+                    apiConfig,
+                    setAiMessage,
+                    setIsGenerating,
+                    setErrorMsg,
+                    loadingMessage: "제출물을 분석하여 맞춤형 피드백을 생성 중입니다..."
+                });
+
+                if(result) setAiFeedback(result);
+            };
+
+            const handleSaveScore = () => {
+                if (!activeStudent || !aiFeedback) {
+                    setErrorMsg("저장할 AI 채점 결과가 없습니다.");
+                    return;
+                }
+
+                onSaveScore(course.id, activeStudent.id, aiFeedback.score);
+                setActiveStudent((prev) => prev ? ({
+                    ...prev,
+                    latestScore: aiFeedback.score,
+                    status: "채점완료",
+                    time: "AI 채점 저장 완료"
+                }) : prev);
+            };
+
+            return (
+                <div className="p-8 animate-fade-in flex flex-col h-full">
+                    <header className="mb-6 border-b border-slate-200 pb-4">
+                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.CheckSquare className="text-indigo-600" /> ③ AI 채점 및 피드백</h2>
+                    </header>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+                        <MiniBarChart title="과제 제출 현황" items={submissionChartItems} colorClass="bg-indigo-500" />
+                        <MiniBarChart title="성적 분포도" items={scoreChartItems} colorClass="bg-emerald-500" />
+                    </div>
+                    <div className="flex gap-6 flex-1 min-h-0">
+                        <div className="w-1/4 bg-white border rounded-xl p-4 overflow-y-auto shadow-sm">
+                            <h3 className="font-bold mb-3 border-b pb-2 text-sm"><Icons.Users size={16} className="inline mr-1"/> 제출 현황</h3>
+                            {course.students.map(s => (
+                                <div key={s.id} onClick={()=>{setActiveStudent(s); setAiFeedback(null);}} className={`p-3 cursor-pointer rounded-lg mb-2 ${activeStudent?.id===s.id ? 'bg-indigo-50 border border-indigo-200' : 'border border-transparent hover:bg-slate-50'}`}>
+                                    <p className="font-bold text-sm">{s.name} <span className="text-[10px] text-amber-600 bg-amber-100 px-1 rounded ml-1">{s.status}</span></p>
+                                    <p className="text-[11px] text-slate-500 mt-1">{s.submission?.title || "제출물 없음"}</p>
+                                    <p className="text-[11px] text-slate-400 mt-1">{typeof s.latestScore === "number" ? `최근 점수 ${s.latestScore}점` : "점수 없음"}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="w-3/4 bg-white border rounded-xl p-6 flex flex-col shadow-sm overflow-y-auto">
+                            {activeStudent ? (
+                                <div className="flex flex-col h-full">
+                                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                        <h3 className="font-bold text-lg">{activeStudent.name} 학생 제출물</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button onClick={handleLoadFromLms} className="bg-indigo-50 text-indigo-700 px-3 py-2 rounded-lg text-sm font-bold hover:bg-indigo-100">
+                                                LMS 제출 불러오기(가상)
+                                            </button>
+                                            <label className="bg-white border border-slate-300 px-3 py-2 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 cursor-pointer">
+                                                파일 불러오기
+                                                <input type="file" accept=".txt,.md,.html,.json,.csv" onChange={handleManualFile} className="hidden" />
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4 mb-4">
+                                        <div className="bg-slate-50 rounded-lg border p-6 min-h-[280px]">
+                                            {activeStudent.submission ? (
+                                                <div className="space-y-3">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <span className="px-2 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700">
+                                                            {activeStudent.submission.source === "lms" ? "LMS 연동(가상)" : "교수 직접 업로드"}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">{activeStudent.submission.submittedAt}</span>
+                                                    </div>
+                                                    <h4 className="font-bold text-slate-800">{activeStudent.submission.title}</h4>
+                                                    <p className="text-xs text-slate-500">{activeStudent.submission.fileName}</p>
+                                                    <pre className="bg-white border rounded-lg p-4 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-h-[360px] overflow-y-auto">
+{activeStudent.submission.content}
+                                                    </pre>
+                                                </div>
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center text-center text-slate-400">
+                                                    LMS 제출을 불러오거나 우측 입력란으로 교수가 직접 업로드해 주세요.
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="bg-white border rounded-lg p-4">
+                                            <h4 className="font-bold text-slate-800 mb-3">교수 직접 업로드</h4>
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-600 mb-1">과제 제목</label>
+                                                    <input value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="예: XR 프로젝트 초안" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-600 mb-1">제출 내용</label>
+                                                    <textarea value={manualContent} onChange={(e) => setManualContent(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm h-44" placeholder="학생 제출 내용을 붙여넣거나 파일 불러오기로 채우세요." />
+                                                </div>
+                                                <button onClick={handleManualUpload} className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-slate-800">
+                                                    교수 직접 업로드 반영
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {!aiFeedback ? (
+                                        <button onClick={handleFeedback} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 shadow"><Icons.Sparkles size={16} className="inline mr-2"/> 피드백 초안 생성</button>
+                                    ) : (
+                                        <div className="bg-white border border-indigo-200 p-5 rounded-lg shadow-sm animate-fade-in">
+                                            <div className="flex justify-between items-center mb-3 border-b pb-2"><h4 className="font-bold text-indigo-900"><Icons.Sparkles size={16} className="inline mr-1"/> AI 초안</h4><span className="text-xl font-black text-indigo-600">{aiFeedback.score}점</span></div>
+                                            <div className="space-y-3">
+                                                <div><label className="text-xs font-bold text-green-600">강점</label><textarea className="w-full p-2 border rounded mt-1 text-sm font-medium" defaultValue={aiFeedback.strengths} rows="2"></textarea></div>
+                                                <div><label className="text-xs font-bold text-amber-600">보완점</label><textarea className="w-full p-2 border rounded mt-1 text-sm font-medium" defaultValue={aiFeedback.weaknesses} rows="2"></textarea></div>
+                                                <div><label className="text-xs font-bold text-indigo-600">제언</label><textarea className="w-full p-2 border rounded mt-1 text-sm font-medium" defaultValue={aiFeedback.suggestion} rows="2"></textarea></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                                <button onClick={handleSaveScore} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-lg text-sm">점수 저장</button>
+                                                <button className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-lg text-sm">LMS 전송</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : <div className="m-auto text-slate-400 text-center"><Icons.CheckSquare size={40} className="mx-auto mb-3 opacity-20"/><p>학생을 선택하세요.</p></div>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 4. 개입
+        function InterventionView({ course, isGenerating, setIsGenerating, setAiMessage, setErrorMsg, apiConfig }) {
+            const [email, setEmail] = useState(null);
+            
+            const handleEmail = async (student) => {
+                const schema = { type: "OBJECT", properties: { subject: { type: "STRING" }, body: { type: "STRING" } }, required: ["subject", "body"] };
+                const prompt = `문제상황:${student.issue}\n격려 및 면담 유도 이메일 작성`;
+
+                const result = await runStructuredGeneration({
+                    prompt,
+                    schema,
+                    apiConfig,
+                    setAiMessage,
+                    setIsGenerating,
+                    setErrorMsg,
+                    loadingMessage: "학생 데이터를 바탕으로 면담 메일을 작성 중입니다..."
+                });
+
+                if(result) setEmail(result);
+            };
+
+            return (
+                <div className="p-8 animate-fade-in">
+                    <header className="mb-6 border-b border-slate-200 pb-4">
+                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.TrendingDown className="text-red-500" /> ④ 진도 점검 및 개입</h2>
+                    </header>
+                    <div className="flex gap-6">
+                        <div className="w-1/2 space-y-4">
+                            <h3 className="font-bold">⚠️ 위험군 목록</h3>
+                            {course.atRiskStudents.length === 0 ? <p className="text-sm text-slate-400">위험 학생이 없습니다.</p> : 
+                                course.atRiskStudents.map(s => (
+                                    <div key={s.id} className="bg-white border border-red-200 rounded-xl p-4 shadow-sm">
+                                        <div className="flex justify-between font-bold mb-2"><span>{s.name}</span><span className="text-red-600 text-xs">{s.severity}</span></div>
+                                        <div className="bg-red-50 text-red-800 text-sm p-2 rounded mb-3 font-medium">{s.issue}</div>
+                                        <button onClick={()=>handleEmail(s)} className="w-full bg-white border border-slate-300 py-2 rounded text-sm font-bold hover:bg-slate-50"><Icons.Mail size={16} className="inline mr-1"/> 메일 초안 생성</button>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                        <div className="w-1/2">
+                            {email ? (
+                                <div className="bg-white border border-indigo-200 rounded-xl p-6 shadow-lg animate-fade-in">
+                                    <h3 className="font-bold text-indigo-900 mb-4 border-b pb-2"><Icons.Mail size={16} className="inline mr-1"/> 발송 초안</h3>
+                                    <input className="w-full border p-2 text-sm font-bold mb-3 rounded" defaultValue={email.subject}/>
+                                    <textarea className="w-full border p-3 text-sm font-medium rounded h-40" defaultValue={email.body}></textarea>
+                                    <button className="w-full bg-indigo-600 text-white font-bold py-3 mt-4 rounded-lg shadow">LMS 발송</button>
+                                </div>
+                            ) : <div className="h-full min-h-[300px] border-2 border-dashed rounded-xl flex items-center justify-center text-slate-400 text-sm bg-slate-50/50">좌측에서 학생을 선택하세요.</div>}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 5. 성찰 리포트
+        function ReflectionView({ course, isGenerating, setIsGenerating, setAiMessage, setErrorMsg, apiConfig }) {
+            const [report, setReport] = useState(null);
+            
+            const handleReport = async () => {
+                const schema = { type: "OBJECT", properties: { achievement: { type: "STRING" }, patterns: { type: "STRING" }, suggestions: { type: "ARRAY", items: { type: "STRING" } } }, required: ["achievement", "patterns", "suggestions"] };
+                const ragContext = course.isLinkedToDrive ? "과목: 메타버스, XR. 미드저니 실습 등" : "";
+                const prompt = `강의종합분석\n${ragContext}\nachievement(성취도), patterns(오답/질문패턴), suggestions(개선점 3개) 작성`;
+
+                const result = await runStructuredGeneration({
+                    prompt,
+                    schema,
+                    apiConfig,
+                    setAiMessage,
+                    setIsGenerating,
+                    setErrorMsg,
+                    loadingMessage: "한 학기 데이터를 종합 분석 중입니다..."
+                });
+
+                if(result) setReport(result);
+            };
+
+            return (
+                <div className="p-8 animate-fade-in">
+                    <header className="mb-6 flex justify-between items-end border-b pb-4">
+                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2"><Icons.BarChart className="text-indigo-600" /> ⑤ 과정 중심 성찰 및 개선</h2>
+                        {!report && <button onClick={handleReport} className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow"><Icons.Sparkles size={16} className="inline mr-1"/> 리포트 도출</button>}
+                    </header>
+                    {!report ? (
+                        <div className="bg-white border rounded-xl p-12 text-center text-slate-400 shadow-sm"><Icons.BarChart size={48} className="mx-auto mb-4 opacity-50"/><p>우측 상단의 버튼을 눌러 리포트를 생성하세요.</p></div>
+                    ) : (
+                        <div className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden animate-fade-in">
+                            <div className="bg-slate-900 text-white p-5 text-center"><h3 className="text-xl font-black">{course.title} 강의 개선 리포트</h3></div>
+                            <div className="p-6 space-y-6">
+                                <div><h4 className="font-bold mb-2 flex items-center gap-1 text-slate-800"><Icons.CheckCircle size={16} className="text-green-500"/> 성취도 분석</h4><p className="bg-slate-50 p-4 rounded border text-sm font-medium text-slate-700 leading-relaxed">{report.achievement}</p></div>
+                                <div><h4 className="font-bold mb-2 flex items-center gap-1 text-slate-800"><Icons.AlertCircle size={16} className="text-amber-500"/> 주요 오답 패턴</h4><p className="bg-slate-50 p-4 rounded border text-sm font-medium text-slate-700 leading-relaxed">{report.patterns}</p></div>
+                                <div><h4 className="font-bold mb-2 flex items-center gap-1 text-slate-800"><Icons.Lightbulb size={16} className="text-indigo-600"/> 개선 제안</h4>
+                                    <ul className="space-y-2">{report.suggestions.map((s,i)=><li key={i} className="bg-indigo-50 p-3 rounded border border-indigo-100 text-sm font-bold text-slate-700 flex gap-2"><span className="text-indigo-600">{i+1}.</span> {s}</li>)}</ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // --- [Main App Component Setup] ---
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [apiConfig, setApiConfig] = useState({
+                apiKey: "",
+                model: OPENAI_MODELS.some((model) => model.value === localStorage.getItem(STORAGE_KEYS.model))
+                    ? localStorage.getItem(STORAGE_KEYS.model)
+                    : DEFAULT_OPENAI_MODEL
+            });
+            const [courses, setCourses] = useState(INITIAL_COURSES);
+            const [currentMenu, setCurrentMenu] = useState('dashboard');
+            const [activeCourseId, setActiveCourseId] = useState(INITIAL_COURSES[0].id);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [aiMessage, setAiMessage] = useState("");
+            const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+            const [errorMsg, setErrorMsg] = useState("");
+
+            const activeCourse = courses.find(c => c.id === activeCourseId) || courses[0];
+            const handleNavigate = (menu, courseId = null) => { if (courseId) setActiveCourseId(courseId); setCurrentMenu(menu); };
+
+            const handleAddCourse = (newCourse) => {
+                setCourses([...courses, newCourse]);
+                setActiveCourseId(newCourse.id);
+            };
+
+            const handleSaveAssignmentToBank = (courseId, assignmentRecord) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.id === courseId
+                            ? {
+                                ...course,
+                                assignmentBank: [...(course.assignmentBank || []), assignmentRecord]
+                            }
+                            : course
+                    )
+                );
+            };
+
+            const handleUpdateStudentSubmission = (courseId, studentId, updatePayload) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.id === courseId
+                            ? {
+                                ...course,
+                                students: course.students.map((student) =>
+                                    student.id === studentId
+                                        ? {
+                                            ...student,
+                                            submission: updatePayload.submission,
+                                            status: updatePayload.status || student.status,
+                                            time: updatePayload.time || student.time
+                                        }
+                                        : student
+                                )
+                            }
+                            : course
+                    )
+                );
+            };
+
+            const handleSaveStudentScore = (courseId, studentId, score) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.id === courseId
+                            ? {
+                                ...course,
+                                students: course.students.map((student) =>
+                                    student.id === studentId
+                                        ? {
+                                            ...student,
+                                            latestScore: score,
+                                            status: "채점완료",
+                                            time: "AI 채점 저장 완료"
+                                        }
+                                        : student
+                                )
+                            }
+                            : course
+                    )
+                );
+            };
+
+            const handleAddCourseWeek = (courseId, newWeek) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.id === courseId
+                            ? {
+                                ...course,
+                                weeks: [...course.weeks, newWeek].sort((a, b) => a.week - b.week)
+                            }
+                            : course
+                    )
+                );
+            };
+
+            const handleSaveCourseSyllabusText = (courseId, syllabusText) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.id === courseId
+                            ? {
+                                ...course,
+                                syllabusText
+                            }
+                            : course
+                    )
+                );
+            };
+
+            const handleImportSyllabusWeeks = (courseId, importedWeeks) => {
+                setCourses((prevCourses) =>
+                    prevCourses.map((course) =>
+                        course.id === courseId
+                            ? {
+                                ...course,
+                                weeks: importedWeeks
+                            }
+                            : course
+                    )
+                );
+            };
+
+            const handleLogin = (nextApiConfig) => {
+                setApiConfig(nextApiConfig);
+                setIsLoggedIn(true);
+            };
+
+            if (!isLoggedIn) return <LoginScreen onLogin={handleLogin} initialModel={apiConfig.model} />;
+
+            return (
+                <div className="flex h-screen bg-slate-50 text-slate-800">
+                    {/* 사용자 정의 Error Modal (Alert 창을 완벽하게 대체) */}
+                    <ErrorModal message={errorMsg} onClose={() => setErrorMsg("")} />
+
+                    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 z-10 shadow-xl">
+                        <div className="p-6">
+                            <h1 className="text-xl font-bold text-white flex items-center gap-2"><Icons.Sparkles size={24} className="text-indigo-400" /> AI EdTech</h1>
+                            <p className="text-[10px] text-slate-500 mt-2">상태: {apiConfig.apiKey ? '직접 입력한 OpenAI API 연결' : '앱 기본 OpenAI API 연결 대기'}</p>
+                            <p className="text-[10px] text-slate-500 mt-1">모델: {apiConfig.model}</p>
+                        </div>
+                        <nav className="flex-1 px-4 space-y-2 overflow-y-auto mt-2">
+                            <NavItem iconName="LayoutDashboard" label="대시보드" active={currentMenu === 'dashboard'} onClick={() => handleNavigate('dashboard')} />
+                            <div className="pt-4 pb-2">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-2 mb-2 flex items-center gap-1"><Icons.FolderOpen size={14}/> 내 강의실</p>
+                                <div className="space-y-1">
+                                    {courses.map(c => (
+                                        <div key={c.id} onClick={() => setActiveCourseId(c.id)} className={`px-3 py-2 rounded-lg border cursor-pointer transition-colors relative ${activeCourseId === c.id ? 'bg-indigo-600 border-indigo-500 text-white shadow' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+                                            <p className="text-sm font-medium truncate pr-4">{c.title}</p>
+                                            {c.isLinkedToDrive && <div className="absolute top-2.5 right-2 text-green-400"><Icons.Database size={14} /></div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="pt-4 space-y-1 border-t border-slate-800 mt-2">
+                                <NavItem iconName="BookOpen" label="① 강의 및 자료 설계" active={currentMenu === 'syllabus'} onClick={() => handleNavigate('syllabus')} />
+                                <NavItem iconName="FileQuestion" label="② 평가 및 루브릭" active={currentMenu === 'assignments'} onClick={() => handleNavigate('assignments')} />
+                                <NavItem iconName="CheckSquare" label="③ AI 채점 및 피드백" active={currentMenu === 'evaluation'} onClick={() => handleNavigate('evaluation')} />
+                                <NavItem iconName="TrendingDown" label="④ 진도 점검 및 개입" active={currentMenu === 'intervention'} onClick={() => handleNavigate('intervention')} />
+                                <NavItem iconName="BarChart" label="⑤ 성찰 및 개선" active={currentMenu === 'reflection'} onClick={() => handleNavigate('reflection')} />
+                                <NavItem iconName="Database" label="⑥ LMS 연동 센터" active={currentMenu === 'lms'} onClick={() => handleNavigate('lms')} />
+                            </div>
+                        </nav>
+                    </aside>
+
+                    <main className="flex-1 overflow-y-auto relative bg-slate-50">
+                        {currentMenu === 'dashboard' && <DashboardView courses={courses} onNavigate={handleNavigate} onOpenAddModal={() => setIsAddModalOpen(true)} />}
+                        {currentMenu === 'syllabus' && <SyllabusView key={`syl-${activeCourse.id}`} course={activeCourse} isGenerating={isGenerating} setIsGenerating={setIsGenerating} setAiMessage={setAiMessage} setErrorMsg={setErrorMsg} apiConfig={apiConfig} onAddWeek={handleAddCourseWeek} onSaveSyllabusText={handleSaveCourseSyllabusText} onImportSyllabusWeeks={handleImportSyllabusWeeks} />}
+                        {currentMenu === 'assignments' && <AssignmentsView key={`ass-${activeCourse.id}`} course={activeCourse} isGenerating={isGenerating} setIsGenerating={setIsGenerating} setAiMessage={setAiMessage} setErrorMsg={setErrorMsg} apiConfig={apiConfig} onSaveAssignment={handleSaveAssignmentToBank} />}
+                        {currentMenu === 'evaluation' && <EvaluationView key={`eval-${activeCourse.id}`} course={activeCourse} isGenerating={isGenerating} setIsGenerating={setIsGenerating} setAiMessage={setAiMessage} setErrorMsg={setErrorMsg} apiConfig={apiConfig} onUpdateSubmission={handleUpdateStudentSubmission} onSaveScore={handleSaveStudentScore} />}
+                        {currentMenu === 'intervention' && <InterventionView key={`int-${activeCourse.id}`} course={activeCourse} isGenerating={isGenerating} setIsGenerating={setIsGenerating} setAiMessage={setAiMessage} setErrorMsg={setErrorMsg} apiConfig={apiConfig} />}
+                        {currentMenu === 'reflection' && <ReflectionView key={`ref-${activeCourse.id}`} course={activeCourse} isGenerating={isGenerating} setIsGenerating={setIsGenerating} setAiMessage={setAiMessage} setErrorMsg={setErrorMsg} apiConfig={apiConfig} />}
+                        {currentMenu === 'lms' && <LmsIntegrationView key={`lms-${activeCourse.id}`} course={activeCourse} onNavigate={handleNavigate} />}
+                        
+                        {activeCourse.isLinkedToDrive && (
+                            <div className="absolute top-6 right-8 flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-xs font-bold border border-green-200 shadow-sm animate-pulse-slow">
+                                <Icons.Database size={14} /> Drive DB 연동 (RAG On)
+                            </div>
+                        )}
+                    </main>
+
+                    {/* AI Loading Overlay */}
+                    {isGenerating && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                            <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 text-center border border-indigo-100">
+                                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-6 animate-pulse border border-indigo-100">
+                                    <Icons.Sparkles size={32} className="text-indigo-600 animate-spin-slow" />
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-800 mb-2">AI 어시스턴트 작동 중</h3>
+                                <p className="text-sm text-slate-600 mb-6 font-medium">{aiMessage}</p>
+                                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div className="bg-indigo-600 h-full w-1/2 rounded-full animate-progress"></div></div>
+                            </div>
+                        </div>
+                    )}
+
+                    <AddCourseModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddCourse} setErrorMsg={setErrorMsg} />
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

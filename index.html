@@ -384,7 +384,7 @@
                 if (!weekNumber || !remainder) return;
 
                 const parts = remainder
-                    .split(/[|/]/)
+                    .split(/\s*\|\s*|\s*[-–•]\s+(?=\S)/)
                     .map((part) => part.trim())
                     .filter(Boolean);
 
@@ -393,6 +393,11 @@
                     .map((topic) => topic.trim())
                     .filter(Boolean);
 
+                const existing = parsedWeeks.find((item) => item.week === weekNumber);
+                if (existing) {
+                    existing.topics = [...new Set([...existing.topics, ...parts])];
+                    return;
+                }
                 parsedWeeks.push({
                     week: weekNumber,
                     title,
@@ -414,8 +419,27 @@
                 }
 
                 const arrayBuffer = await file.arrayBuffer();
-                const result = await window.mammoth.extractRawText({ arrayBuffer });
-                return (result.value || "").trim();
+                const result = await window.mammoth.convertToHtml({ arrayBuffer });
+                const document = new DOMParser().parseFromString(result.value || "", "text/html");
+                const weeklyRows = [];
+                document.querySelectorAll("table").forEach((table) => {
+                    let inSchedule = false;
+                    table.querySelectorAll("tr").forEach((row) => {
+                        const cells = Array.from(row.children).filter((cell) => /^(TD|TH)$/.test(cell.tagName));
+                        const values = cells.map((cell) => cell.textContent.trim());
+                        if (/^주차$/.test(values[0] || "") && values.some((value) => /학습|내용|목표/.test(value))) {
+                            inSchedule = true;
+                            return;
+                        }
+                        if (!inSchedule || !/^0?\d{1,2}(?:\s*주차?)?$/.test(values[0] || "")) return;
+                        const week = Number(values[0].replace(/\D/g, ""));
+                        if (week < 1 || week > 52 || !values[1]) return;
+                        const paragraphs = Array.from(cells[1].querySelectorAll("p")).map((p) => p.textContent.trim()).filter(Boolean);
+                        const content = (paragraphs.length ? paragraphs : [values[1]]).join(" | ");
+                        weeklyRows.push(`${week}주차: ${content}${values[2] ? ` | ${values[2]}` : ""}`);
+                    });
+                });
+                return weeklyRows.length ? weeklyRows.join("\n") : (document.body.textContent || "").trim();
             }
 
             if (lowerName.endsWith(".txt") || lowerName.endsWith(".md")) {

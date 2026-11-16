@@ -1,0 +1,8 @@
+# Publish only application source and deployment configuration.
+/*
+!/.gitignore
+!/index.html
+!/server.js
+!/package.json
+!/README.md
+!/.github/
